@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hive Mind 2.0 — Autonomous Software Studio</title>
+  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="/style.css">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon-192.png">
+  <meta name="theme-color" content="#090d12">
+</head>
+<body>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <div id="setup-screen" class="setup-screen" hidden role="dialog" aria-modal="true" aria-label="Connect your models">
+    <section class="panel setup-panel">
+      <p class="eyebrow">FIRST-TIME SETUP</p>
+      <h1>Connect your models</h1>
+      <p class="setup-intro">Brain, Developer, Frontend, and Tester each run through your own <code>claude</code> and <code>codex</code> CLIs on this machine. Connect the account(s) your agents are configured to use before the studio unlocks.</p>
+      <div id="setup-providers" class="setup-providers"></div>
+      <div class="setup-actions">
+        <button id="setup-recheck" class="secondary" type="button">CHECK AGAIN</button>
+        <span id="setup-status-note" class="muted" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+  </div>
+
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">HIVE</span><span>MIND 2.0</span></div>
+    <div class="top-status" aria-live="polite">
+      <span id="telemetry-spend" class="tele-stat" hidden></span>
+      <span id="telemetry-cycle" class="tele-stat" hidden></span>
+      <span id="workflow-state" class="state-chip">NO PROJECT</span>
+      <span id="discord-state" class="signal offline">DISCORD NOT CONFIGURED</span>
+      <button id="discord-repair" class="signal-action" type="button" title="Reconnect the Discord bridge and restart the always-on Claude Code session">FIX DISCORD</button>
+      <span id="backend-health" class="signal"><i></i> CHECKING</span>
+      <span id="socket-state" class="signal"><i></i> CONNECTING</span>
+      <span id="clock"></span>
+    </div>
+  </header>
+
+  <main class="studio">
+    <section class="agent-grid" aria-label="Studio agents">
+      <article class="agent-card brain" data-role="brain" role="button" tabindex="0" aria-haspopup="dialog">
+        <div class="agent-icon">B</div>
+        <div><p class="eyebrow">COORDINATOR</p><h2>Brain</h2><p>Plans with you and freezes the approved specification.</p></div>
+        <span id="brain-status" class="agent-state">IDLE</span>
+      </article>
+      <div class="flow-arrow" aria-hidden="true">›</div>
+      <article class="agent-card developer" data-role="developer" role="button" tabindex="0" aria-haspopup="dialog">
+        <div class="agent-icon">BE</div>
+        <div><p class="eyebrow">BUILDER</p><h2>Backend Developer</h2><p>Implements the plan's logic, data, and services in an isolated worktree.</p></div>
+        <span id="developer-status" class="agent-state">IDLE</span>
+      </article>
+      <div class="flow-arrow" aria-hidden="true">›</div>
+      <article class="agent-card frontend" data-role="frontend" role="button" tabindex="0" aria-haspopup="dialog">
+        <div class="agent-icon">FE</div>
+        <div><p class="eyebrow">UI CRAFT</p><h2>Frontend Developer</h2><p>Builds and polishes the interface on the backend's commit.</p></div>
+        <span id="frontend-status" class="agent-state">IDLE</span>
+      </article>
+      <div class="flow-arrow" aria-hidden="true">›</div>
+      <article class="agent-card tester" data-role="tester" role="button" tabindex="0" aria-haspopup="dialog">
+        <div class="agent-icon">T</div>
+        <div><p class="eyebrow">QUALITY GATE</p><h2>Tester</h2><p>Validates the exact commit and returns reproducible evidence.</p></div>
+        <span id="tester-status" class="agent-state">IDLE</span>
+      </article>
+    </section>
+
+    <div id="notice" class="notice" hidden role="status"></div>
+
+    <section id="onboarding" class="onboarding panel">
+      <p class="eyebrow">NEW MANAGED PROJECT</p>
+      <h1>What should the studio build?</h1>
+      <p>Brain will ask only material questions, then produce one complete plan for approval.</p>
+      <form id="project-form" class="project-form">
+        <label>Project name<input id="project-name" required maxlength="80" placeholder="e.g. Orbit Notes"></label>
+        <label>First objective<textarea id="project-objective" required rows="3" placeholder="Describe the product or feature you want built."></textarea></label>
+        <button class="primary" type="submit">START WITH BRAIN</button>
+      </form>
+    </section>
+
+    <section id="workspace" class="workspace" hidden>
+      <section class="panel conversation-panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">SHARED CONVERSATION</p><h1>Brain</h1></div>
+          <span id="conversation-source" class="muted">GUI + DISCORD</span>
+        </div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <form id="message-form" class="composer">
+          <div id="composer-attachments" class="composer-attachments" hidden></div>
+          <button type="button" id="attach-button" class="secondary attach-button" aria-label="Attach reference images" title="Attach reference images">＋</button>
+          <textarea id="message-input" rows="2" placeholder="Reply to Brain…  (Enter to send · Shift+Enter for a new line · drop or paste images)"></textarea>
+          <button class="primary" type="submit">SEND</button>
+          <input type="file" id="attach-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden>
+        </form>
+      </section>
+
+      <aside class="side-stack">
+        <section class="panel plan-panel">
+          <div class="panel-head"><div><p class="eyebrow">FROZEN SPECIFICATION</p><h2 id="plan-title">Plan pending</h2></div><span id="plan-version" class="version">—</span></div>
+          <p id="plan-goal" class="plan-goal">Brain is preparing the plan.</p>
+          <div id="assumptions-wrap" hidden><h3>Assumptions</h3><ul id="plan-assumptions"></ul></div>
+          <h3>Acceptance criteria</h3>
+          <ol id="criteria" class="criteria"><li class="empty">No criteria yet.</li></ol>
+          <div id="test-targets-wrap" hidden><h3>Required platforms</h3><div id="test-targets" class="target-list"></div></div>
+          <button id="plan-review-open" class="secondary plan-review-open" hidden>REVIEW FULL PLAN</button>
+          <button id="approve-plan" class="approve" hidden>APPROVE &amp; BUILD</button>
+          <p id="plan-lock" class="lock-note" hidden>🔒 This plan version is frozen.</p>
+        </section>
+
+        <div class="side-lower">
+        <section class="panel settings-panel">
+          <div class="panel-head"><div><p class="eyebrow">NEXT RUN</p><h2>Models</h2></div></div>
+          <div id="model-settings"></div>
+        </section>
+
+        <section class="panel second-brain-panel">
+          <div class="panel-head"><div><p class="eyebrow">SHARED PROJECT KNOWLEDGE</p><h2>Second Brain</h2></div></div>
+          <div id="second-brain-status" class="knowledge-zones" aria-label="Second Brain lifecycle counts">
+            <span>Atlas 0</span><span>Projects 0</span><span>zcomplete 0</span>
+          </div>
+          <p id="second-brain-active" class="knowledge-path">No active project notebook.</p>
+          <p id="second-brain-proposals" class="knowledge-proposals">0 PENDING PROPOSALS</p>
+          <button id="second-brain-open" class="secondary">BROWSE KNOWLEDGE</button>
+          <p class="muted knowledge-authority">Source, frozen plans, and exact-commit evidence remain authoritative.</p>
+        </section>
+        </div>
+      </aside>
+
+      <section class="panel execution-panel">
+        <div class="panel-head"><div><p class="eyebrow">DETERMINISTIC WORKFLOW</p><h2>Execution</h2></div><div class="execution-actions"><code id="delivery-commit">NO COMMIT</code><button id="cancel-workflow" class="secondary" hidden>⏹ CANCEL RUN</button><button id="retry-workflow" class="secondary" hidden>RETRY BLOCKED WORKFLOW</button></div></div>
+        <div id="runs" class="run-grid"></div>
+        <h3>Live agent output</h3>
+        <div id="agent-feed" class="agent-feed"><p class="empty">No agent is running.</p></div>
+        <h3>Blocking findings</h3>
+        <div id="findings" class="findings"><p class="empty">No blocking findings.</p></div>
+      </section>
+
+      <section class="panel timeline-panel">
+        <div class="panel-head"><div><p class="eyebrow">AUDIT TRAIL</p><h2>Event log</h2></div><div class="term-dots" aria-hidden="true"><i></i><i></i><i></i></div></div>
+        <ol id="timeline" class="timeline"></ol>
+      </section>
+    </section>
+  </main>
+
+  <div id="plan-review" class="knowledge-browser" hidden role="dialog" aria-modal="true" aria-label="Plan review">
+    <section class="panel knowledge-browser-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow" id="plan-review-project">PLAN REVIEW</p>
+          <h2 id="plan-review-title">—</h2>
+          <p id="plan-review-meta" class="muted agent-profile-meta"></p>
+        </div>
+        <button id="plan-review-close" class="secondary">CLOSE</button>
+      </div>
+      <div id="plan-review-body" class="plan-review-body"></div>
+      <div class="plan-review-actions">
+        <button id="plan-review-approve" class="approve" hidden>APPROVE &amp; BUILD</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="agent-profile" class="knowledge-browser" hidden role="dialog" aria-modal="true" aria-label="Agent profile">
+    <section class="panel knowledge-browser-panel">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow" id="agent-profile-eyebrow">AGENT</p>
+          <h2 id="agent-profile-name">—</h2>
+          <p id="agent-profile-meta" class="muted agent-profile-meta"></p>
+        </div>
+        <button id="agent-profile-close" class="secondary">CLOSE</button>
+      </div>
+      <div id="agent-profile-tabs" class="knowledge-tabs">
+        <button data-tab="persona" class="active">PERSONA</button>
+        <button data-tab="memory">MEMORY</button>
+        <button data-tab="runs">RUNS</button>
+      </div>
+      <div class="knowledge-body">
+        <div class="knowledge-column"><ul id="agent-profile-list" class="knowledge-list"></ul></div>
+        <article id="agent-profile-note" class="knowledge-note"><p class="empty">Loading…</p></article>
+      </div>
+      <p id="agent-profile-status" class="knowledge-status" role="status" aria-live="polite" data-error="false"></p>
+      <p class="muted knowledge-authority">The persona file replaces the built-in identity and is read fresh each run; the operational contract always wins. Memory lists this agent's Second Brain notes.</p>
+    </section>
+  </div>
+
+  <div id="knowledge-browser" class="knowledge-browser" hidden role="dialog" aria-modal="true" aria-label="Second Brain browser">
+    <section class="panel knowledge-browser-panel">
+      <div class="panel-head">
+        <div><p class="eyebrow">SHARED PROJECT KNOWLEDGE</p><h2>Second Brain</h2></div>
+        <button id="knowledge-close" class="secondary">CLOSE</button>
+      </div>
+      <div id="knowledge-tabs" class="knowledge-tabs">
+        <button data-tab="Atlas" class="active">ATLAS</button>
+        <button data-tab="Projects">PROJECTS</button>
+        <button data-tab="zcomplete">ZCOMPLETE</button>
+        <button data-tab="_inbox">INBOX</button>
+      </div>
+      <div class="knowledge-body">
+        <div class="knowledge-column">
+          <button id="knowledge-back" class="secondary" hidden>← ALL ENTRIES</button>
+          <ul id="knowledge-list" class="knowledge-list"></ul>
+        </div>
+        <article id="knowledge-note" class="knowledge-note"><p class="empty">Select a page to read it.</p></article>
+      </div>
+      <p id="knowledge-status" class="knowledge-status" role="status" aria-live="polite" data-error="false"></p>
+      <p class="muted knowledge-authority">Proposals are uncurated role output. Accepting files a dated page under the project's decisions; canonical pages are never overwritten.</p>
+    </section>
+  </div>
+
+  <footer><span>LOCAL MANAGED WORKSPACE</span><span>NO EXTERNAL PUSH OR DEPLOYMENT</span></footer>
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

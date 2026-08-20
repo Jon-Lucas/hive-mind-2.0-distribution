@@ -1,0 +1,35 @@
+{
+  "name": "hive-mind-2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "node --import tsx src/main.ts",
+    "supervise": "node --import tsx src/supervisor.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^2.1.220",
+    "@fastify/static": "^10.1.2",
+    "@fastify/websocket": "^11.2.0",
+    "@openai/codex": "^0.146.0",
+    "better-sqlite3": "^12.4.1",
+    "discord.js": "^14.25.1",
+    "fastify": "^5.6.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.19.3",
+    "@types/ws": "^8.18.1",
+    "happy-dom": "^20.11.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16",
+    "ws": "^8.21.1"
+  }
+}
